@@ -48,8 +48,8 @@ const login = async (req, res) => {
 		const accessToken = await JwtProvider.generateToken(
 			userInfo,
 			ACCESS_TOKEN_SECRET_SIGNATURE,
-			"5s" // 5s
-			// "1h"
+			// "5s" // 5s
+			"1h"
 		);
 
 		const refreshToken = await JwtProvider.generateToken(
@@ -89,7 +89,10 @@ const login = async (req, res) => {
 
 const logout = async (req, res) => {
 	try {
-		// Do something
+		// Xoá cookie - đơn giản là làm ngược lại so với việc gán cookie ở hàm login
+		res.clearCookie("accessToken");
+		res.clearCookie("refreshToken");
+
 		res.status(StatusCodes.OK).json({ message: "Logout API success!" });
 	} catch (error) {
 		res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error);
@@ -98,10 +101,46 @@ const logout = async (req, res) => {
 
 const refreshToken = async (req, res) => {
 	try {
-		// Do something
-		res.status(StatusCodes.OK).json({ message: " Refresh Token API success." });
+		// Cách 1: Lấy luôn từ Cookie đã đính kèm vào request
+		const refreshTokenFromCookie = req.cookies?.refreshToken;
+		// Cách 2: Từ localstora phía FE truyền vào body khi gọi API
+		const refreshTokenFromBody = req.body?.refreshToken;
+
+		// Verify / giải mã cái refreshToken xem có hợp lệ không
+		const refreshTokenDecoded = await JwtProvider.verifyToken(
+			// refreshTokenFromCookie, // sử dụng cookie
+			refreshTokenFromBody, // sử dụng body lấy từ localstorage
+			REFRESH_TOKEN_SECRET_SIGNATURE
+		);
+
+		// Đoạn này vì chúng ta chỉ lưu những thông tin unique và cố định user trong token rồi, vì vậy có thể lấy luôn từ decoded ra, tiết kiệm query vào DB để lấy data mới
+		const userInfo = {
+			id: refreshTokenDecoded.id,
+			email: refreshTokenDecoded.email,
+		};
+
+		// Tạo acessToken mới
+		const accessToken = await JwtProvider.generateToken(
+			userInfo,
+			ACCESS_TOKEN_SECRET_SIGNATURE,
+			// "5s" // 5s
+			"1h"
+		);
+
+		// Res lại cookie accessToken mới cho trường hợp sử dụng cookie
+		res.cookie("accessToken", accessToken, {
+			httpOny: true,
+			secure: true,
+			sameSite: "none",
+			maxAge: ms("14 days"),
+		});
+
+		// Trả về accessToken mới cho trường hợp FE cần update lại trong localstorage
+		res.status(StatusCodes.OK).json({ accessToken });
 	} catch (error) {
-		res.status(StatusCodes.INTERNAL_SERVER_ERROR).json(error);
+		console.log(error);
+
+		res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: "Refresh token is failed" });
 	}
 };
 
