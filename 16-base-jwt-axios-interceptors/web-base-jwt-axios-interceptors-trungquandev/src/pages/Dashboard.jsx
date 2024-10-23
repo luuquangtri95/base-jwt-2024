@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import authorizedAxiosInstance from "~/utils/authorizedAxios.js";
 import { API_ROOT } from "~/utils/constants";
 import { useNavigate } from "react-router-dom";
+import { handleLogoutAPI } from "~/apis/index.js";
 
 function Dashboard() {
 	const [user, setUser] = useState(null);
@@ -25,13 +26,9 @@ function Dashboard() {
 	}, []);
 
 	const handleLogout = async () => {
-		// Với trường hợp sử dụng localStorage: chỉ cần xoá thông tin user trong localstorage phía frontend
-		localStorage.removeItem("accessToken");
-		localStorage.removeItem("refreshToken");
+		await handleLogoutAPI();
+		// nếu trường hợp dùng cookie thì nhớ xoá userInfo trong localstrorage
 		localStorage.removeItem("userInfo");
-		// Vởi trường hợp sử dụng cookie: Dùng httpOnly cookies => gọi API để xử lý remove Cookies
-		await authorizedAxiosInstance.delete(`${API_ROOT}/v1/users/logout`);
-		setUser(null);
 
 		// Cuối cùng => điều hướng đến trang login sau khi logout thành công
 		navigate("/login");

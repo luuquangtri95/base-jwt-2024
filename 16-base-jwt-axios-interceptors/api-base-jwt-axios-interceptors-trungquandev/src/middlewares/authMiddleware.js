@@ -17,7 +17,7 @@ const isAuthorized = async (req, res, next) => {
 	//#endregion
 
 	//#region [Cách 2:  lấy accessToken trong trường hợp phía FE lưu localstorage và gửi lên thông qua header authorization]
-	const accessTokenFromHeader = req.headers.authorization.split(" ")[1];
+	const accessTokenFromHeader = req.headers.authorization?.split(" ")[1];
 
 	// console.log("accessTokenFromHeader", accessTokenFromHeader);
 
@@ -30,8 +30,8 @@ const isAuthorized = async (req, res, next) => {
 	try {
 		// Bước 1: Thực hiện giải mã token xem có hợp lệ hay là không
 		const accessTokenDecoded = await JwtProvider.verifyToken(
-			accessTokenFromCookie, // dùng token theo cookie
-			// accessTokenFromHeader, // dùng token theo localstorage
+			// accessTokenFromCookie, // dùng token theo cookie
+			accessTokenFromHeader, // dùng token theo localstorage
 			"KBgJwUETt4HeVD05WaXXI9V3JnwCVP" //ACCESS_TOKEN_SECRET_SIGNATURE
 		);
 
